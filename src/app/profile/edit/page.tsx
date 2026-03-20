@@ -29,9 +29,7 @@ export default function EditProfilePage() {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: Replace the URL below with your real backend endpoint.
-    // Also pass `avatarUrl` from UploadThing once you integrate file uploads.
-    // Example: fetch("https://your-api.com/profile", { method: "POST", ... })
+    // TODO: pass `avatarUrl` from UploadThing once you integrate file uploads.
     await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

@@ -5,6 +5,8 @@ import { useParams } from "next/navigation";
 import { User, Post } from "@/lib/types";
 import { CURRENT_USER } from "@/lib/mock-data";
 import Link from "next/link";
+import PostCard from "@/components/PostCard";
+import { Heart, MessageCircleMore } from "lucide-react";
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -13,9 +15,16 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Change the URL below to your real backend endpoint.
-    // Example: fetch(`https://your-api.com/profile/${username}`)
-
+    const fetchProfile = async () => {
+      const res = await fetch(`/api/profile/${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        setUser(data.user);
+        setPosts(data.posts);
+        setLoading(false);
+      }
+    }
+    fetchProfile();
   }, [username]);
 
   if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading profile…</div>;
@@ -67,12 +76,10 @@ export default function ProfilePage() {
               <span className="text-sm text-gray-500 ml-1">posts</span>
             </div>
             <button className="hover:opacity-70">
-              {/* TODO: fetch("/api/profile/[username]/followers") */}
               <span className="font-semibold">{user.followersCount.toLocaleString()}</span>
               <span className="text-sm text-gray-500 ml-1">followers</span>
             </button>
             <button className="hover:opacity-70">
-              {/* TODO: fetch("/api/profile/[username]/following") */}
               <span className="font-semibold">{user.followingCount.toLocaleString()}</span>
               <span className="text-sm text-gray-500 ml-1">following</span>
             </button>
@@ -114,18 +121,28 @@ export default function ProfilePage() {
           </button>
         )}
       </div>
-
-      {/* TODO (students): Render the posts grid here.
-           `posts` is an array of Post objects fetched above.
-           Each post has: id, imageUrl, caption, likesCount, commentsCount, author.
-           Display them in a 3-column grid (use grid grid-cols-3 gap-0.5).
-           Each cell should be aspect-square with the post image filling it.
-           Optionally show a hover overlay with likes/comments counts. */}
       <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
-        <p className="font-semibold text-lg">Posts grid coming soon</p>
-        <p className="text-sm text-center max-w-xs">
-          Implement the posts grid in <code className="bg-gray-100 px-1 rounded text-gray-600">src/app/profile/[username]/page.tsx</code>
-        </p>
+        <div className="grid grid-cols-3">
+          {posts.map((post) => (
+            <article key={post.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-[468px] w-full">
+              <div className="relative group aspect-square w-full overflow-hidden rounded-lg shadow-lg">
+      
+                <img src={post.imageUrl} alt={post.caption} className="w-full aspect-square object-cover" />
+
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-8 group-hover:translate-y-0 text-white text-center p-4 ">
+                    <div className="flex justify-center gap-2">
+                      <Heart className="bg-fill"/>
+                      <span>{post.likesCount}</span>
+                      <MessageCircleMore />
+                      <span>{post.commentsCount}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );

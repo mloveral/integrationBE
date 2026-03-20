@@ -40,8 +40,6 @@ export default function CreatePage() {
     try {
       if (tab === "post") {
         // TODO: Replace `preview` with the real URL returned by UploadThing after upload.
-        // TODO: Change the URL below to your real backend endpoint.
-        // Example: fetch("https://your-api.com/posts", { method: "POST", ... })
         await fetch("/api/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -49,8 +47,6 @@ export default function CreatePage() {
         });
       } else {
         // TODO: Replace `preview` with the real URL returned by UploadThing after upload.
-        // TODO: Change the URL below to your real backend endpoint.
-        // Example: fetch("https://your-api.com/reels", { method: "POST", ... })
         await fetch("/api/reels", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

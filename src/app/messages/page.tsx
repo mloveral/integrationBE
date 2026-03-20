@@ -9,8 +9,14 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Change the URL below to your real backend endpoint.
-    // Example: fetch("https://your-api.com/messages")
+    const fetchConversations = async () => {
+      const res = await fetch("/api/messages");
+      if (res.ok) {
+        setConversations(await res.json());
+        setLoading(false);
+      }
+    }
+    fetchConversations();
   }, []);
 
   if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading messages…</div>;

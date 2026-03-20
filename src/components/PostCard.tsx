@@ -28,9 +28,7 @@ export default function PostCard({ post: initial }: Props) {
   async function handleSave() {
     // Optimistic update
     setPost((p) => ({ ...p, isSaved: !p.isSaved }));
-
-    // TODO: Change the URL below to your real backend endpoint.
-    // Example: fetch(`https://your-api.com/posts/${post.id}/save`, { method: "POST" })
+    
     await fetch(`/api/posts/${post.id}/save`, { method: "POST" });
   }
 
