@@ -2,8 +2,11 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { generateReactHelpers } from "@uploadthing/react";
+import { OurFileRouter } from "../api/uploadthing/core";
 
 type Tab = "post" | "reel";
+const { useUploadThing } = generateReactHelpers<OurFileRouter>();
 
 export default function CreatePage() {
   const router = useRouter();
@@ -14,7 +17,17 @@ export default function CreatePage() {
   const [audioTrack, setAudioTrack] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const {startUpload, isUploading} = useUploadThing(
+    tab === "post" ? "imageUploader" : "videoUploader",
+    {
+      onUploadError: (uploadError) => {
+        setError(uploadError.message);
+      }
+    }
+  )
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -32,7 +45,7 @@ export default function CreatePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!preview) { setError("Please select a file."); return; }
+    if (!uploadedUrl) { setError("Please select a file."); return; }
 
     setLoading(true);
     setError(null);
