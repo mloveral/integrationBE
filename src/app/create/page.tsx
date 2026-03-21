@@ -29,18 +29,22 @@ export default function CreatePage() {
     }
   )
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     // Show a local preview so the user can see what they picked
     setPreview(URL.createObjectURL(file));
+    setError(null);
+    setUploadedUrl(null);
 
-    // TODO: Upload the file to UploadThing here and save the returned URL.
-    // 1. Install: npm install uploadthing @uploadthing/react
-    // 2. Create your file router at /src/app/api/uploadthing/core.ts
-    // 3. Upload and save the URL:
-    //      const [result] = await uploadFiles("imageUploader", { files: [file] });
-    //      setUploadedUrl(result.url);
+    const res = await startUpload([file]);
+    const uploadedFile = res?.[0];
+    
+    if (!uploadedFile?.ufsUrl) {
+      setError("Upload failed. Please try again.");
+      return;
+    }
+    setUploadedUrl(uploadedFile.ufsUrl);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,18 +56,16 @@ export default function CreatePage() {
 
     try {
       if (tab === "post") {
-        // TODO: Replace `preview` with the real URL returned by UploadThing after upload.
         await fetch("/api/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ imageUrl: preview, caption, location }),
+          body: JSON.stringify({ imageUrl: uploadedUrl, caption, location }),
         });
       } else {
-        // TODO: Replace `preview` with the real URL returned by UploadThing after upload.
         await fetch("/api/reels", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ videoUrl: preview, thumbnailUrl: preview, caption, audioTrack }),
+          body: JSON.stringify({ videoUrl: uploadedUrl, thumbnailUrl: preview, caption, audioTrack }),
         });
       }
 
@@ -85,7 +87,13 @@ export default function CreatePage() {
         {(["post", "reel"] as Tab[]).map((t) => (
           <button
             key={t}
-            onClick={() => { setTab(t); setPreview(null); }}
+            onClick={() => { 
+              setTab(t); 
+              setPreview(null);
+              setUploadedUrl(null);
+              setError(null);
+              if (fileRef.current) fileRef.current.value = "";
+            }}
             className={`flex-1 py-2 rounded-lg text-sm font-semibold capitalize transition-colors ${
               tab === t ? "bg-white shadow-sm" : "text-gray-500 hover:text-gray-700"
             }`}
@@ -117,7 +125,9 @@ export default function CreatePage() {
               <p className="text-xs">
                 {tab === "post" ? "JPEG, PNG, WEBP" : "MP4, MOV"}
               </p>
-              {/* TODO: Replace this area with <UploadDropzone> from @uploadthing/react */}
+              <p>
+                {isUploading ? "Uploading..." : uploadedUrl ? "File uploaded!" : "Select a file to upload."}
+              </p>
             </div>
           )}
         </div>
