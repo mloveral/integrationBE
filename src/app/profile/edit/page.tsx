@@ -3,6 +3,10 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { CURRENT_USER } from "@/lib/mock-data";
+import { generateReactHelpers } from "@uploadthing/react";
+import { OurFileRouter } from "@/app/api/uploadthing/core";
+
+const { useUploadThing } = generateReactHelpers<OurFileRouter>();
 
 export default function EditProfilePage() {
   const router = useRouter();
@@ -13,28 +17,46 @@ export default function EditProfilePage() {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [avatarUrl, setAvatarUrl] = useState(CURRENT_USER.avatar);
 
-  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  const {startUpload, isUploading} = useUploadThing(
+    "imageUploader",
+  )
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setAvatarPreview(URL.createObjectURL(file));
 
-    // TODO: Upload the avatar with UploadThing and save the returned URL.
-    // Example:
-    //   const [result] = await uploadFiles("imageUploader", { files: [file] });
-    //   setUploadedAvatarUrl(result.url);
+    try {
+      const res = await startUpload([file]);
+      const uploadedFile = res?.[0];
+      
+      if (!uploadedFile?.ufsUrl) {
+        console.error("Upload succeeded but no URL was returned");
+        return;
+      }
+
+      setAvatarUrl(uploadedFile.ufsUrl);
+      setAvatarPreview(uploadedFile.ufsUrl);
+    } catch (error) {
+      console.error("Avatar upload failed", error);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
-    // TODO: pass `avatarUrl` from UploadThing once you integrate file uploads.
-    await fetch("/api/profile", {
+    const res = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, bio, website }),
+      body: JSON.stringify({ name, bio, website, avatarUrl }),
     });
+
+    if (!res.ok) {
+      throw new Error("Failed to save profile");
+    }
 
     setSaved(true);
     setLoading(false);
@@ -106,7 +128,7 @@ export default function EditProfilePage() {
 
         <button
           type="submit"
-          disabled={loading || saved}
+          disabled={loading || saved || isUploading}
           className="w-full py-3 rounded-xl bg-blue-500 text-white font-semibold text-sm hover:bg-blue-600 transition-colors disabled:opacity-40"
         >
           {saved ? "Saved ✓" : loading ? "Saving…" : "Save changes"}

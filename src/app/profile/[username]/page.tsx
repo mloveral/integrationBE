@@ -5,7 +5,6 @@ import { useParams } from "next/navigation";
 import { User, Post } from "@/lib/types";
 import { CURRENT_USER } from "@/lib/mock-data";
 import Link from "next/link";
-import PostCard from "@/components/PostCard";
 import { Heart, MessageCircleMore } from "lucide-react";
 
 export default function ProfilePage() {

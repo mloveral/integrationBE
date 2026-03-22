@@ -34,9 +34,28 @@ export default function MessageThread({ initialConversation }: Props) {
     setMessages((prev) => [...prev, optimistic]);
     setText("");
     setSending(true);
+    
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          conversationId: initialConversation.id,
+          text: optimistic.text,
+        })
+      })
 
-    // TODO: Change the URL below to your real backend endpoint.
-    // Example: fetch("https://your-api.com/messages", { method: "POST", ... })
+      if (!res.ok) {
+        throw new Error("Failed to send message");
+      }
+      const updatedConversation: Conversation = await res.json();
+
+      // Replace optimistic message with the one from the server (which has the real ID)
+      setMessages(updatedConversation.messages);
+    } catch {
+      // On error, remove the optimistic message
+      setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
+    }
 
     setSending(false);
   }

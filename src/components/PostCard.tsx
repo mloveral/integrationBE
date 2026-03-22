@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Post } from "@/lib/types";
+import { Post, Comment } from "@/lib/types";
 import { formatDistanceToNow } from "@/lib/utils";
+import { CURRENT_USER } from "@/lib/mock-data";
 
 interface Props {
   post: Post;
@@ -12,6 +13,8 @@ interface Props {
 export default function PostCard({ post: initial }: Props) {
   const [post, setPost] = useState(initial);
   const [showAllComments, setShowAllComments] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [isCommentPosting, setIsCommentPosting] = useState(false);
 
   async function handleLike() {
     // Optimistic update
@@ -21,8 +24,25 @@ export default function PostCard({ post: initial }: Props) {
       likesCount: p.isLiked ? p.likesCount - 1 : p.likesCount + 1,
     }));
 
-    // TODO: Change the URL below to your real backend endpoint.
-    // Example: fetch(`https://your-api.com/posts/${post.id}/like`, { method: "POST" })
+    try {
+      const res = await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error("Failed to update like status");
+      }
+      const data: {isLiked: boolean; likesCount: number} = await res.json();
+      setPost((p) => ({
+        ...p,
+        isLiked: data.isLiked,
+        likesCount: data.likesCount,
+      }));
+    } catch (error) {
+      // Revert optimistic update on error
+      setPost((p) => ({
+        ...p,
+        isLiked: !p.isLiked,
+        likesCount: p.isLiked ? p.likesCount - 1 : p.likesCount + 1,
+      }));
+    }
   }
 
   async function handleSave() {
@@ -30,6 +50,55 @@ export default function PostCard({ post: initial }: Props) {
     setPost((p) => ({ ...p, isSaved: !p.isSaved }));
     
     await fetch(`/api/posts/${post.id}/save`, { method: "POST" });
+  }
+
+  async function handleComment() {
+    const text = commentText.trim();
+    if (!text || isCommentPosting) return;
+    setIsCommentPosting(true);
+
+    //Optimistic update
+    const newComment = {
+      id: `${Date.now()}${CURRENT_USER.id}`,
+      author: CURRENT_USER,
+      text: commentText.trim(),
+      createdAt: new Date(Date.now() - 600_000).toISOString(),
+      likesCount: 0,
+    };
+    setPost ((p) =>({
+      ...p,
+      comments: [...p.comments, newComment],
+      commentsCount: p.commentsCount + 1,
+    }));
+
+    setCommentText("");
+
+    try {
+      const res = await fetch(`/api/posts/${post.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: post.id, comment: commentText }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to add comment");
+      }
+
+      const data: { comments: Comment[] } = await res.json();
+      setPost ((p) =>({
+        ...p,
+        comments: data.comments,
+        commentsCount: p.commentsCount + 1,
+      }));
+      console.log("Comment added successfully");
+    } catch{
+      setPost((p) => ({
+        ...p,
+        comments: p.comments.filter((c) => c.id !== newComment.id),
+        commentsCount: p.commentsCount - 1,
+      }));
+    }
+    setIsCommentPosting(false);
   }
 
   return (
@@ -134,20 +203,17 @@ export default function PostCard({ post: initial }: Props) {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5 flex-shrink-0 text-gray-400">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.182 15.182a4.5 4.5 0 01-6.364 0M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9.75 9.75c0 .414-.168.75-.375.75S9 10.164 9 9.75 9.168 9 9.375 9s.375.336.375.75zm-.375 0h.008v.015h-.008V9.75zm5.625 0c0 .414-.168.75-.375.75s-.375-.336-.375-.75.168-.75.375-.75.375.336.375.75zm-.375 0h.008v.015h-.008V9.75z" />
         </svg>
-        {/* TODO: Create a POST /api/posts/[id]/comments endpoint, then wire it here.
-            Example:
-              await fetch(`/api/posts/${post.id}/comments`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ text: commentText }),
-              }); */}
+
+        {/* Comment API url completada */}
         <input
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
           type="text"
           placeholder="Add a comment…"
           className="flex-1 text-sm outline-none bg-transparent"
         />
-        <button className="text-sm font-semibold text-blue-500 opacity-40" disabled>
-          Post
+        <button className={`text-sm font-semibold text-blue-500 ${!commentText.trim() ? "opacity-40": ""}`} onClick={handleComment} disabled={!commentText.trim() || isCommentPosting}>
+          {isCommentPosting ? "Posting…" : "Post"}
         </button>
       </div>
     </article>
