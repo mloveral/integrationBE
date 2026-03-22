@@ -6,6 +6,7 @@ import { User, Post, Reel } from "@/lib/types";
 import { CURRENT_USER } from "@/lib/mock-data";
 import Link from "next/link";
 import { Heart, MessageCircleMore } from "lucide-react";
+import { toast } from "sonner";
 
 export default function ProfilePage() {
   const { username } = useParams<{ username: string }>();
@@ -46,8 +47,10 @@ export default function ProfilePage() {
     if (res.ok) {
       const data = await res.json();
       setUser(data.user);
+      toast.success(`Ahora sigues a ${username}`);
     } else {
-      console.error("Failed to follow user");
+      toast.error("No se pudo seguir al usuario");
+      setFollowing((prev) => !prev);
     }
   }
 

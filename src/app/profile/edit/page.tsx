@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CURRENT_USER } from "@/lib/mock-data";
 import { generateReactHelpers } from "@uploadthing/react";
 import { OurFileRouter } from "@/app/api/uploadthing/core";
+import { toast } from "sonner";
 
 const { useUploadThing } = generateReactHelpers<OurFileRouter>();
 
@@ -48,22 +49,28 @@ export default function EditProfilePage() {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/profile", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, bio, website, avatarUrl }),
-    });
+    try {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, bio, website, avatarUrl }),
+      });
 
-    if (!res.ok) {
-      throw new Error("Failed to save profile");
+      if (!res.ok) {
+        throw new Error("No se pudo guardar el perfil");
+      }
+
+      setSaved(true);
+      toast.success("Perfil actualizado correctamente");
+      setTimeout(() => {
+        router.push(`/profile/${CURRENT_USER.username}`);
+        router.refresh();
+      }, 800);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudo guardar el perfil");
+    } finally {
+      setLoading(false);
     }
-
-    setSaved(true);
-    setLoading(false);
-    setTimeout(() => {
-      router.push(`/profile/${CURRENT_USER.username}`);
-      router.refresh();
-    }, 800);
   }
 
   return (

@@ -6,6 +6,7 @@ import { CURRENT_USER } from "@/lib/mock-data";
 import { formatDistanceToNow } from "@/lib/utils";
 import { generateReactHelpers } from "@uploadthing/react";
 import { OurFileRouter } from "@/app/api/uploadthing/core";
+import { toast } from "sonner";
 
 interface Props {
   initialConversation: Conversation;
@@ -83,6 +84,7 @@ export default function MessageThread({ initialConversation }: Props) {
     } catch {
       // On error, remove the optimistic message
       setMessages((prev) => prev.filter((msg) => msg.id !== optimistic.id));
+      toast.error("No se pudo enviar el mensaje");
     }
 
     setSending(false);

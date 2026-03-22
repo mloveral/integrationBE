@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { generateReactHelpers } from "@uploadthing/react";
 import { OurFileRouter } from "../api/uploadthing/core";
+import { toast } from "sonner";
 
 type Tab = "post" | "reel";
 const { useUploadThing } = generateReactHelpers<OurFileRouter>();
@@ -56,23 +57,33 @@ export default function CreatePage() {
 
     try {
       if (tab === "post") {
-        await fetch("/api/posts", {
+        const res = await fetch("/api/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ imageUrl: uploadedUrl, caption, location }),
         });
+        if (!res.ok) {
+          throw new Error("No se pudo crear la publicación");
+        }
+        toast.success("Publicación creada correctamente");
       } else {
-        await fetch("/api/reels", {
+        const res = await fetch("/api/reels", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ videoUrl: uploadedUrl, thumbnailUrl: preview, caption, audioTrack }),
         });
+        if (!res.ok) {
+          throw new Error("No se pudo crear el reel");
+        }
+        toast.success("Reel publicado correctamente");
       }
 
       router.push("/");
       router.refresh();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      const message = err instanceof Error ? err.message : "Something went wrong";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

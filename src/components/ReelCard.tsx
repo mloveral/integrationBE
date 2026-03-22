@@ -30,7 +30,6 @@ export default function ReelCard({ reel }: Props) {
     } catch {
       setIsLiked((v) => !v);
       setLikesCount((v) => (isLiked ? v - 1 : v + 1));
-      console.log("Error updating like status");
     }
   }
 

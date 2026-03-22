@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Post, Comment } from "@/lib/types";
 import { formatDistanceToNow } from "@/lib/utils";
 import { CURRENT_USER } from "@/lib/mock-data";
+import { toast } from "sonner";
 
 interface Props {
   post: Post;
@@ -48,8 +49,18 @@ export default function PostCard({ post: initial }: Props) {
   async function handleSave() {
     // Optimistic update
     setPost((p) => ({ ...p, isSaved: !p.isSaved }));
-    
-    await fetch(`/api/posts/${post.id}/save`, { method: "POST" });
+
+    try {
+      const res = await fetch(`/api/posts/${post.id}/save`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error("Failed to save post");
+      }
+
+      const data: { isSaved: boolean } = await res.json();
+      setPost((p) => ({ ...p, isSaved: data.isSaved }));
+    } catch {
+      setPost((p) => ({ ...p, isSaved: !p.isSaved }));
+    }
   }
 
   async function handleComment() {
@@ -90,13 +101,14 @@ export default function PostCard({ post: initial }: Props) {
         comments: data.comments,
         commentsCount: p.commentsCount + 1,
       }));
-      console.log("Comment added successfully");
+      toast.success("Comentario publicado");
     } catch{
       setPost((p) => ({
         ...p,
         comments: p.comments.filter((c) => c.id !== newComment.id),
         commentsCount: p.commentsCount - 1,
       }));
+      toast.error("No se pudo publicar el comentario");
     }
     setIsCommentPosting(false);
   }
