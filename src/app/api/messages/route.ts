@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
   }
 
+  console.log("url", body.mediaUrl);
+
   const newMessage = {
     id: `msg_${Date.now()}`,
     senderId: CURRENT_USER.id,
