@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { User, Post } from "@/lib/types";
+import { User, Post, Reel } from "@/lib/types";
 import { CURRENT_USER } from "@/lib/mock-data";
 import Link from "next/link";
 import { Heart, MessageCircleMore } from "lucide-react";
@@ -12,6 +12,9 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"posts" | "reels" | "saved">("posts");
+  const [following, setFollowing] = useState(false);
+  const [reels, setReels] = useState<Reel[]>([]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -22,6 +25,12 @@ export default function ProfilePage() {
         setPosts(data.posts);
         setLoading(false);
       }
+
+      const resReels = await fetch(`/api/profile/${username}/reels`);
+      if (resReels.ok) {
+        const data = await resReels.json();
+        setReels(data);
+      }
     }
     fetchProfile();
   }, [username]);
@@ -30,6 +39,17 @@ export default function ProfilePage() {
   if (!user) return <div className="flex justify-center py-20 text-gray-400">User not found.</div>;
 
   const isOwn = username === CURRENT_USER.username;
+
+  async function handleFollow() {
+    setFollowing(!following);
+    const res = await fetch(`/api/profile/${username}/follow`, { method: "POST" });
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data.user);
+    } else {
+      console.error("Failed to follow user");
+    }
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -58,9 +78,8 @@ export default function ProfilePage() {
               </Link>
             ) : (
               <>
-                {/* TODO: Wire to POST /api/profile/[username]/follow */}
-                <button className="px-6 py-1.5 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors">
-                  Follow
+                <button className="px-6 py-1.5 text-sm font-semibold bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors" onClick={handleFollow}>
+                  {following ? "Unfollow" : "Follow"}
                 </button>
                 <Link href="/messages" className="px-4 py-1.5 text-sm font-semibold bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">
                   Message
@@ -98,21 +117,20 @@ export default function ProfilePage() {
 
       {/* Tabs */}
       <div className="border-t border-gray-200 flex justify-center gap-10 mb-6">
-        <button className="flex items-center gap-1.5 py-3 border-t-2 border-gray-900 text-xs font-semibold uppercase tracking-widest">
+        <button className={`flex items-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest ${activeTab === "posts" ? "border-gray-900 border-t-2" : "text-gray-400"}`} onClick={() => setActiveTab("posts")}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
           </svg>
           Posts
         </button>
-        {/* TODO: fetch(`/api/profile/${username}/reels`) on tab click */}
-        <button className="flex items-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+        <button className={`flex items-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest ${activeTab === "reels" ? "border-gray-900 border-t-2" : "text-gray-400"}`} onClick={() => setActiveTab("reels")} >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
             <path strokeLinecap="round" strokeLinejoin="round" d="M3.375 9h17.25c1.035 0 1.875.84 1.875 1.875v9.75c0 1.036-.84 1.875-1.875 1.875H3.375A1.875 1.875 0 011.5 20.625v-9.75C1.5 9.839 2.34 9 3.375 9z" />
           </svg>
           Reels
         </button>
         {isOwn && (
-          <button className="flex items-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
+          <button className={`flex items-center gap-1.5 py-3 text-xs font-semibold uppercase tracking-widest ${activeTab === "saved" ? "border-gray-900 border-t-2" : "text-gray-400"}`} onClick={() => setActiveTab("saved")}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
               <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
             </svg>
@@ -122,10 +140,10 @@ export default function ProfilePage() {
       </div>
       <div className="flex flex-col items-center gap-3 py-16 text-gray-400">
         <div className="grid grid-cols-3">
-          {posts.map((post) => (
+          {activeTab==="posts" && posts.map((post) => (
             <article key={post.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-[468px] w-full">
               <div className="relative group aspect-square w-full overflow-hidden rounded-lg shadow-lg">
-      
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={post.imageUrl} alt={post.caption} className="w-full aspect-square object-cover" />
 
                 <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition">
@@ -141,6 +159,32 @@ export default function ProfilePage() {
               </div>
             </article>
           ))}
+          {activeTab === "posts" &&
+            posts.length === 0 && (
+            <p className="text-center text-gray-400 col-span-3">No posts yet.</p>
+          )}
+          {activeTab === "reels" && reels.map((reel) => (
+            <article key={reel.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden max-w-[468px] w-full">
+              <div className="relative group aspect-auto w-full overflow-hidden rounded-lg shadow-lg">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={reel.thumbnailUrl} alt={reel.caption} className=" inset-0 w-full h-full object-cover" />
+
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/50 transition">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform translate-y-8 group-hover:translate-y-0 text-white text-center p-4 ">
+                    <div className="flex justify-center gap-2">
+                      <Heart className="bg-fill"/>
+                      <span>{reel.likesCount}</span>
+                      <MessageCircleMore />
+                      <span>{reel.commentsCount}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          ))}
+          {activeTab === "reels" && reels.length === 0 && (
+            <p className="text-center text-gray-400 col-span-3">No reels yet.</p>
+          )}
         </div>
       </div>
     </div>
